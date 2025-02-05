@@ -65,9 +65,16 @@
     </div>
 
     <div class="text-center">
-      <button id="generateBtn" class="btn btn-secondary">Generate New Layout</button>
+      <div class="btn-group mb-3">
+        <button id="generateBtn" class="btn btn-secondary">Generate New Layout</button>
+        <button id="exportPNGBtn" class="btn btn-primary">Export as PNG</button>
+        <button id="exportPDFBtn" class="btn btn-primary">Export as PDF</button>
+      </div>
     </div>
   </div>
+
+  <!-- Include jsPDF library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <script>
     // Get canvas context and form elements
@@ -280,6 +287,34 @@
       partition(mainArea, PARTITION_DEPTH);
       drawBlueprint();
     }
+
+    // Export functions
+    function exportAsPNG() {
+      const link = document.createElement('a');
+      link.download = 'floor-plan.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function exportAsPDF() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+
+      // Add the canvas image to the PDF
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+
+      // Save the PDF
+      pdf.save('floor-plan.pdf');
+    }
+
+    // Add export button event listeners
+    document.getElementById('exportPNGBtn').addEventListener('click', exportAsPNG);
+    document.getElementById('exportPDFBtn').addEventListener('click', exportAsPDF);
 
     // Event Listeners
     dimensionsForm.addEventListener('submit', (e) => {
