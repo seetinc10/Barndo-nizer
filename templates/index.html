@@ -88,17 +88,15 @@
     const PARTITION_DEPTH = 3;
     const PIXELS_PER_FOOT = 20; // Scale factor for converting feet to pixels
 
-    // Constants for room types and sizes (in square feet)
-    const ROOM_STANDARDS = {
-      'Living Room': { minArea: 280, idealArea: 320, minWidth: 14 },
-      'Master Bedroom': { minArea: 200, idealArea: 224, minWidth: 12 },
-      'Kitchen': { minArea: 160, idealArea: 180, minWidth: 10 },
-      'Bedroom': { minArea: 120, idealArea: 144, minWidth: 10 },
-      'Bathroom': { minArea: 25, idealArea: 30, minWidth: 5 },
-      'Laundry Room': { minArea: 28, idealArea: 35, minWidth: 5 }
-    };
-
-    const ROOM_TYPES = Object.keys(ROOM_STANDARDS);
+    // Constants for room types
+    const ROOM_TYPES = [
+      'Kitchen',
+      'Living Room',
+      'Master Bedroom',
+      'Bedroom',
+      'Bathroom',
+      'Laundry Room'
+    ];
 
     // Data structure for each partition/room
     class Node {
@@ -110,19 +108,11 @@
         this.left = null;
         this.right = null;
         this.door = null;
-        this.roomType = null;
+        this.roomType = null;  // Add room type property
       }
 
       isLeaf() {
         return this.left === null && this.right === null;
-      }
-
-      getArea() {
-        return this.w * this.h / (PIXELS_PER_FOOT * PIXELS_PER_FOOT);
-      }
-
-      getWidth() {
-        return this.w / PIXELS_PER_FOOT;
       }
     }
 
@@ -143,17 +133,7 @@
     }
 
     function partition(node, depth) {
-      if (depth <= 0) {
-        roomLeaves.push(node);
-        return;
-      }
-
-      // Calculate minimum sizes based on room standards
-      const minArea = Math.min(...Object.values(ROOM_STANDARDS).map(s => s.minArea));
-      const minWidth = Math.min(...Object.values(ROOM_STANDARDS).map(s => s.minWidth));
-      const minPixels = minWidth * PIXELS_PER_FOOT;
-
-      if (node.w < minPixels * 2 || node.h < minPixels * 2) {
+      if (depth <= 0 || (node.w < MIN_ROOM_SIZE * 2 && node.h < MIN_ROOM_SIZE * 2)) {
         roomLeaves.push(node);
         return;
       }
@@ -171,12 +151,8 @@
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
-      if (splitVertically && node.w >= minPixels * 2) {
-        // Ensure minimum width for both resulting rooms
-        const minSplit = node.x + minPixels;
-        const maxSplit = node.x + node.w - minPixels;
-        const splitX = randomInt(minSplit, maxSplit);
-
+      if (splitVertically && node.w >= MIN_ROOM_SIZE * 2) {
+        const splitX = randomInt(node.x + MIN_ROOM_SIZE, node.x + node.w - MIN_ROOM_SIZE);
         node.left = new Node(node.x, node.y, splitX - node.x, node.h);
         node.right = new Node(splitX, node.y, node.x + node.w - splitX, node.h);
 
@@ -188,11 +164,8 @@
           length: 30
         };
         doors.push(node.door);
-      } else if (!splitVertically && node.h >= minPixels * 2) {
-        const minSplit = node.y + minPixels;
-        const maxSplit = node.y + node.h - minPixels;
-        const splitY = randomInt(minSplit, maxSplit);
-
+      } else if (!splitVertically && node.h >= MIN_ROOM_SIZE * 2) {
+        const splitY = randomInt(node.y + MIN_ROOM_SIZE, node.y + node.h - MIN_ROOM_SIZE);
         node.left = new Node(node.x, node.y, node.w, splitY - node.y);
         node.right = new Node(node.x, splitY, node.w, node.y + node.h - splitY);
 
@@ -213,39 +186,39 @@
       partition(node.right, depth - 1);
     }
 
-    // Function to assign room types based on residential standards
+    // Function to assign room types based on room size and position
     function assignRoomTypes() {
       // Sort rooms by size (largest to smallest)
-      const sortedRooms = [...roomLeaves].sort((a, b) => b.getArea() - a.getArea());
+      const sortedRooms = [...roomLeaves].sort((a, b) => (b.w * b.h) - (a.w * a.h));
+
+      // Assign room types based on size and position
       let remainingRooms = [...ROOM_TYPES];
 
-      // First pass: assign rooms that meet ideal size requirements
       sortedRooms.forEach(room => {
-        const area = room.getArea();
-        const width = room.getWidth();
-
-        // Try to match room with ideal specifications
-        for (let i = 0; i < remainingRooms.length; i++) {
-          const roomType = remainingRooms[i];
-          const standard = ROOM_STANDARDS[roomType];
-
-          if (area >= standard.minArea && width >= standard.minWidth) {
-            room.roomType = roomType;
-            remainingRooms.splice(i, 1);
-            break;
-          }
-        }
-      });
-
-      // Second pass: assign any remaining rooms
-      sortedRooms.forEach(room => {
-        if (!room.roomType) {
-          if (remainingRooms.length > 0) {
-            // Assign the best remaining room type
-            room.roomType = remainingRooms.shift();
+        if (remainingRooms.length === 0) {
+          // If we run out of room types, use "Bedroom" for remaining rooms
+          room.roomType = "Bedroom";
+        } else {
+          // For the largest rooms, assign specific types
+          const area = room.w * room.h;
+          if (area > 200 * 200 && remainingRooms.includes('Living Room')) {
+            room.roomType = 'Living Room';
+            remainingRooms = remainingRooms.filter(type => type !== 'Living Room');
+          } else if (area > 180 * 180 && remainingRooms.includes('Master Bedroom')) {
+            room.roomType = 'Master Bedroom';
+            remainingRooms = remainingRooms.filter(type => type !== 'Master Bedroom');
+          } else if (area < 120 * 120 && remainingRooms.includes('Bathroom')) {
+            room.roomType = 'Bathroom';
+            remainingRooms = remainingRooms.filter(type => type !== 'Bathroom');
+          } else if (area < 150 * 150 && remainingRooms.includes('Laundry Room')) {
+            room.roomType = 'Laundry Room';
+            remainingRooms = remainingRooms.filter(type => type !== 'Laundry Room');
+          } else if (remainingRooms.includes('Kitchen')) {
+            room.roomType = 'Kitchen';
+            remainingRooms = remainingRooms.filter(type => type !== 'Kitchen');
           } else {
-            // Default to bedroom for any unassigned rooms
-            room.roomType = 'Bedroom';
+            // Assign any remaining type
+            room.roomType = remainingRooms.shift() || 'Bedroom';
           }
         }
       });
@@ -368,7 +341,7 @@
       );
 
       partition(mainArea, PARTITION_DEPTH);
-      assignRoomTypes();
+      assignRoomTypes();  // Add room type assignment
       drawBlueprint();
     }
 
