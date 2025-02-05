@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blueprint Floor Plan Generator</title>
+  <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+  <style>
+    canvas {
+      background: var(--bs-dark);
+      border: 1px solid var(--bs-border-color);
+      max-width: 100%;
+      height: auto;
+    }
+    
+    .dimension-input {
+      width: 80px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <h2 class="text-center mb-4">Blueprint Floor Plan Generator</h2>
+    
+    <!-- Dimension inputs -->
+    <div class="row justify-content-center mb-4">
+      <div class="col-12 col-md-6">
+        <div class="card bg-dark">
+          <div class="card-body">
+            <form id="dimensionsForm" class="row g-3">
+              <!-- Length inputs -->
+              <div class="col-12">
+                <label class="form-label">Length:</label>
+                <div class="d-flex gap-2 align-items-center">
+                  <input type="number" id="lengthFeet" class="form-control dimension-input" min="1" max="100" value="20">
+                  <label>feet</label>
+                  <input type="number" id="lengthInches" class="form-control dimension-input" min="0" max="11" value="0">
+                  <label>inches</label>
+                </div>
+              </div>
+              
+              <!-- Width inputs -->
+              <div class="col-12">
+                <label class="form-label">Width:</label>
+                <div class="d-flex gap-2 align-items-center">
+                  <input type="number" id="widthFeet" class="form-control dimension-input" min="1" max="100" value="15">
+                  <label>feet</label>
+                  <input type="number" id="widthInches" class="form-control dimension-input" min="0" max="11" value="0">
+                  <label>inches</label>
+                </div>
+              </div>
+              
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary w-100">Update Dimensions</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas container -->
+    <div class="text-center mb-3">
+      <canvas id="floorplan" width="800" height="600"></canvas>
+    </div>
+    
+    <div class="text-center">
+      <button id="generateBtn" class="btn btn-secondary">Generate New Layout</button>
+    </div>
+  </div>
+
+  <script>
+    // The rest of the JavaScript code remains unchanged
+    [Previous JavaScript code from index.html]
+  </script>
+</body>
+</html>
