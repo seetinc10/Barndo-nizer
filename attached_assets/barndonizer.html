@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blueprint Floor Plan Generator</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #2d3e50; /* Dark blueprint background */
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: #2d3e50;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    canvas {
+      background: #2d3e50;
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #fff;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px auto;
+      font-size: 16px;
+      background: #007bff;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Blueprint Floor Plan Generator</h2>
+    <canvas id="floorplan" width="800" height="600"></canvas>
+    <button id="generateBtn">Generate New Floor Plan</button>
+  </div>
+
+  <script>
+    // Get canvas context
+    const canvas = document.getElementById('floorplan');
+    const ctx = canvas.getContext('2d');
+    const generateBtn = document.getElementById('generateBtn');
+
+    // Minimum room size for partitioning
+    const MIN_ROOM_SIZE = 80;
+    // Partition depth controls the number of splits (adjust for more rooms)
+    const PARTITION_DEPTH = 3;
+
+    // Data structure for each partition/room
+    class Node {
+      constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.left = null;
+        this.right = null;
+        // door info will be stored in a node if it is split:
+        // { orientation: 'vertical' or 'horizontal', x, y, length }
+        this.door = null;
+      }
+      // Check if this node is a leaf (unsplit room)
+      isLeaf() {
+        return this.left === null && this.right === null;
+      }
+    }
+
+    // Array to store the leaves (rooms)
+    let roomLeaves = [];
+    // Array to store door objects (one per split)
+    let doors = [];
+
+    // Recursive partitioning function using BSP
+    function partition(node, depth) {
+      // Stop partitioning if maximum depth reached or room too small
+      if (depth <= 0 || (node.w < MIN_ROOM_SIZE * 2 && node.h < MIN_ROOM_SIZE * 2)) {
+        roomLeaves.push(node);
+        return;
+      }
+
+      // Decide split direction: if room is wider than tall, split vertically; if taller, split horizontally.
+      let splitVertically;
+      if (node.w / node.h >= 1.25) {
+        splitVertically = true;
+      } else if (node.h / node.w >= 1.25) {
+        splitVertically = false;
+      } else {
+        // Random choice if roughly square
+        splitVertically = Math.random() > 0.5;
+      }
+
+      // If splitting vertically, choose a random x coordinate; else choose y.
+      if (splitVertically && node.w >= MIN_ROOM_SIZE * 2) {
+        // Ensure both rooms are at least MIN_ROOM_SIZE wide.
+        const splitX = randomInt(node.x + MIN_ROOM_SIZE, node.x + node.w - MIN_ROOM_SIZE);
+        // Create left and right nodes
+        node.left = new Node(node.x, node.y, splitX - node.x, node.h);
+        node.right = new Node(splitX, node.y, node.x + node.w - splitX, node.h);
+        // Door: on the vertical dividing line; choose a random position along the shared wall.
+        const doorY = randomInt(node.y + 20, node.y + node.h - 20);
+        node.door = {
+          orientation: 'vertical',
+          x: splitX,
+          y: doorY,
+          length: 30
+        };
+        doors.push(node.door);
+      } else if (!splitVertically && node.h >= MIN_ROOM_SIZE * 2) {
+        // Horizontal split.
+        const splitY = randomInt(node.y + MIN_ROOM_SIZE, node.y + node.h - MIN_ROOM_SIZE);
+        node.left = new Node(node.x, node.y, node.w, splitY - node.y);
+        node.right = new Node(node.x, splitY, node.w, node.y + node.h - splitY);
+        // Door: on the horizontal dividing line; choose a random position along the shared wall.
+        const doorX = randomInt(node.x + 20, node.x + node.w - 20);
+        node.door = {
+          orientation: 'horizontal',
+          x: doorX,
+          y: splitY,
+          length: 30
+        };
+        doors.push(node.door);
+      } else {
+        // If not enough space to split further, mark as leaf.
+        roomLeaves.push(node);
+        return;
+      }
+      // Recursively partition both children.
+      partition(node.left, depth - 1);
+      partition(node.right, depth - 1);
+    }
+
+    // Helper: generate a random integer between min and max (inclusive)
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Function to draw the blueprint style floor plan
+    function drawBlueprint() {
+      // Fill the background with a dark blueprint color.
+      ctx.fillStyle = '#2d3e50';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Set line styles for walls (white lines).
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'butt';
+
+      // Draw rooms as rectangles.
+      roomLeaves.forEach(room => {
+        ctx.strokeRect(room.x, room.y, room.w, room.h);
+        // Optionally, label each room with its dimensions.
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${room.w}×${room.h}`, room.x + room.w / 2, room.y + room.h / 2);
+      });
+
+      // Draw doors (as gaps in the wall or an arc indicating a swinging door).
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 4;
+      doors.forEach(door => {
+        if (door.orientation === 'vertical') {
+          // Erase a small gap to represent a door on a vertical wall.
+          // Draw a short white line segment.
+          ctx.beginPath();
+          ctx.moveTo(door.x, door.y - door.length / 2);
+          ctx.lineTo(door.x, door.y + door.length / 2);
+          ctx.stroke();
+          // Optionally, draw an arc to suggest a swinging door.
+          ctx.beginPath();
+          ctx.arc(door.x, door.y - door.length / 2, door.length / 2, Math.PI, Math.PI * 1.5, false);
+          ctx.stroke();
+        } else if (door.orientation === 'horizontal') {
+          ctx.beginPath();
+          ctx.moveTo(door.x - door.length / 2, door.y);
+          ctx.lineTo(door.x + door.length / 2, door.y);
+          ctx.stroke();
+          // Swinging door arc.
+          ctx.beginPath();
+          ctx.arc(door.x + door.length / 2, door.y, door.length / 2, Math.PI, Math.PI * 1.5, true);
+          ctx.stroke();
+        }
+      });
+
+      // Draw windows along the exterior walls.
+      drawWindows();
+    }
+
+    // Function to draw window markers along the outer boundary of the floor plan.
+    function drawWindows() {
+      ctx.strokeStyle = '#00aaff';
+      ctx.lineWidth = 3;
+      // Define window length.
+      const winLen = 40;
+
+      // Top wall
+      ctx.beginPath();
+      ctx.moveTo(50, 10);
+      ctx.lineTo(canvas.width - 50, 10);
+      ctx.stroke();
+      // Add window breaks along the top wall.
+      for (let x = 60; x < canvas.width - 50; x += winLen + 20) {
+        ctx.clearRect(x, 0, winLen, 5);
+      }
+
+      // Bottom wall
+      ctx.beginPath();
+      ctx.moveTo(50, canvas.height - 10);
+      ctx.lineTo(canvas.width - 50, canvas.height - 10);
+      ctx.stroke();
+      for (let x = 60; x < canvas.width - 50; x += winLen + 20) {
+        ctx.clearRect(x, canvas.height - 5, winLen, 5);
+      }
+
+      // Left wall
+      ctx.beginPath();
+      ctx.moveTo(10, 50);
+      ctx.lineTo(10, canvas.height - 50);
+      ctx.stroke();
+      for (let y = 60; y < canvas.height - 50; y += winLen + 20) {
+        ctx.clearRect(0, y, 5, winLen);
+      }
+
+      // Right wall
+      ctx.beginPath();
+      ctx.moveTo(canvas.width - 10, 50);
+      ctx.lineTo(canvas.width - 10, canvas.height - 50);
+      ctx.stroke();
+      for (let y = 60; y < canvas.height - 50; y += winLen + 20) {
+        ctx.clearRect(canvas.width - 5, y, 5, winLen);
+      }
+    }
+
+    // Main function to generate the floor plan.
+    function generateFloorPlan() {
+      // Reset leaves and door arrays.
+      roomLeaves = [];
+      doors = [];
+      // Define the main building area margins.
+      const margin = 50;
+      const mainArea = new Node(margin, margin, canvas.width - margin * 2, canvas.height - margin * 2);
+      // Partition the main area recursively.
+      partition(mainArea, PARTITION_DEPTH);
+      // Draw the blueprint.
+      drawBlueprint();
+    }
+
+    // Generate an initial floor plan on load.
+    generateFloorPlan();
+    generateBtn.addEventListener('click', generateFloorPlan);
+  </script>
+</body>
+</html>
