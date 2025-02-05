@@ -88,16 +88,6 @@
     const PARTITION_DEPTH = 3;
     const PIXELS_PER_FOOT = 20; // Scale factor for converting feet to pixels
 
-    // Constants for room types
-    const ROOM_TYPES = [
-      'Kitchen',
-      'Living Room',
-      'Master Bedroom',
-      'Bedroom',
-      'Bathroom',
-      'Laundry Room'
-    ];
-
     // Data structure for each partition/room
     class Node {
       constructor(x, y, w, h) {
@@ -108,7 +98,6 @@
         this.left = null;
         this.right = null;
         this.door = null;
-        this.roomType = null;  // Add room type property
       }
 
       isLeaf() {
@@ -186,44 +175,6 @@
       partition(node.right, depth - 1);
     }
 
-    // Function to assign room types based on room size and position
-    function assignRoomTypes() {
-      // Sort rooms by size (largest to smallest)
-      const sortedRooms = [...roomLeaves].sort((a, b) => (b.w * b.h) - (a.w * a.h));
-
-      // Assign room types based on size and position
-      let remainingRooms = [...ROOM_TYPES];
-
-      sortedRooms.forEach(room => {
-        if (remainingRooms.length === 0) {
-          // If we run out of room types, use "Bedroom" for remaining rooms
-          room.roomType = "Bedroom";
-        } else {
-          // For the largest rooms, assign specific types
-          const area = room.w * room.h;
-          if (area > 200 * 200 && remainingRooms.includes('Living Room')) {
-            room.roomType = 'Living Room';
-            remainingRooms = remainingRooms.filter(type => type !== 'Living Room');
-          } else if (area > 180 * 180 && remainingRooms.includes('Master Bedroom')) {
-            room.roomType = 'Master Bedroom';
-            remainingRooms = remainingRooms.filter(type => type !== 'Master Bedroom');
-          } else if (area < 120 * 120 && remainingRooms.includes('Bathroom')) {
-            room.roomType = 'Bathroom';
-            remainingRooms = remainingRooms.filter(type => type !== 'Bathroom');
-          } else if (area < 150 * 150 && remainingRooms.includes('Laundry Room')) {
-            room.roomType = 'Laundry Room';
-            remainingRooms = remainingRooms.filter(type => type !== 'Laundry Room');
-          } else if (remainingRooms.includes('Kitchen')) {
-            room.roomType = 'Kitchen';
-            remainingRooms = remainingRooms.filter(type => type !== 'Kitchen');
-          } else {
-            // Assign any remaining type
-            room.roomType = remainingRooms.shift() || 'Bedroom';
-          }
-        }
-      });
-    }
-
     function drawBlueprint() {
       ctx.fillStyle = '#2d3e50';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -235,7 +186,7 @@
       roomLeaves.forEach(room => {
         ctx.strokeRect(room.x, room.y, room.w, room.h);
 
-        // Display room dimensions and type
+        // Display room dimensions
         const roomWidthText = pixelsToFeetAndInches(room.w);
         const roomHeightText = pixelsToFeetAndInches(room.h);
 
@@ -243,16 +194,9 @@
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-
-        // Room type on top
-        ctx.fillText(room.roomType || 'Room',
-                    room.x + room.w / 2,
-                    room.y + room.h / 2 - 10);
-
-        // Dimensions below
         ctx.fillText(`${roomWidthText} × ${roomHeightText}`,
                     room.x + room.w / 2,
-                    room.y + room.h / 2 + 10);
+                    room.y + room.h / 2);
       });
 
       // Draw doors
@@ -341,7 +285,6 @@
       );
 
       partition(mainArea, PARTITION_DEPTH);
-      assignRoomTypes();  // Add room type assignment
       drawBlueprint();
     }
 
