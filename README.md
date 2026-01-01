@@ -2,7 +2,7 @@
 
 **Random Floor Plan Layout Generator** 🛠️✨
 
-Endless rustic barndominium-inspired layouts with one click! 🚀🏠
+Endless barndominium-inspired layouts with one click! 🚀🏠
 
 ## What It Does 🌟
 
