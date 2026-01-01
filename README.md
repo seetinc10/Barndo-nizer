@@ -1,6 +1,6 @@
 # Barndo-nizer
 
-![Barndo-nizer App Screenshot](https://raw.githubusercontent.com/seetinc10/Barndo-nizer/main/screenshots/app-screenshot.jpg)
+
 
 **Barndo-nizer** is a simple web-based **Barndominium Floor Plan Generator** (often called "Barndo Floor Plan Generator"). It allows users to quickly create and visualize custom interior layouts for barndominiums by adjusting overall building dimensions and generating room arrangements.
 
